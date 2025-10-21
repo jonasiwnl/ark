@@ -7,6 +7,7 @@ from opensearchpy import OpenSearch, helpers
 IMESSAGE_OPENSEARCH_INDEX = "imessages"
 IMESSAGE_DATA_PATH = Path.home() / "Library/Messages/chat.db"
 LAST_TIMESTAMP_PATH = Path("imessage_last_timestamp.txt")
+# sqlite3
 READ_NEW_IMESSAGES_QUERY = """
 SELECT
     message.ROWID as message_id,
@@ -60,7 +61,8 @@ def index_imessages(os_client: OpenSearch, imessages: list[dict]) -> tuple[int, 
         }
         for imessage in imessages
     )
-    indexed_count, errors = helpers.bulk(os_client, index_operations)
+
+    indexed_count, errors = helpers.bulk(os_client, index_operations, max_retries=2)
     return indexed_count, errors
 
 
@@ -74,8 +76,10 @@ def query_imessages(os_client: OpenSearch, query: str, limit: int = 10) -> list[
 
 if __name__ == "__main__":
     os_client = OpenSearch(hosts=[{"host": "localhost", "port": 9200}], use_ssl=False)
+
     imessages = read_new_imessages()
     indexed_count, errors = index_imessages(os_client, imessages)
     print(f"indexed {indexed_count} new imessages with {len(errors)} errors")
-    queried_imessages = query_imessages(os_client, "stupid")
+
+    queried_imessages = query_imessages(os_client, query="stupid")
     print(queried_imessages)
