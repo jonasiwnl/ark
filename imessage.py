@@ -45,8 +45,8 @@ def read_new_imessages() -> list[dict]:
         return [dict(raw_imessage) for raw_imessage in raw_imessages]
 
 
-def index_imessages(os_client: OpenSearch, imessages: list[dict]):
-    index_operations = [
+def index_imessages(os_client: OpenSearch, imessages: list[dict]) -> tuple[int, list[dict]]:
+    index_operations = (
         {
             "_index": IMESSAGE_OPENSEARCH_INDEX,
             "_id": imessage["message_id"],
@@ -59,8 +59,9 @@ def index_imessages(os_client: OpenSearch, imessages: list[dict]):
             },
         }
         for imessage in imessages
-    ]
-    helpers.bulk(os_client, index_operations)
+    )
+    indexed_count, errors = helpers.bulk(os_client, index_operations)
+    return indexed_count, errors
 
 
 # TODO: typing/formatting
@@ -72,8 +73,9 @@ def query_imessages(os_client: OpenSearch, query: str, limit: int = 10) -> list[
 
 
 if __name__ == "__main__":
-    imessages = read_new_imessages()
     os_client = OpenSearch(hosts=[{"host": "localhost", "port": 9200}], use_ssl=False)
-    index_imessages(os_client, imessages)
+    imessages = read_new_imessages()
+    indexed_count, errors = index_imessages(os_client, imessages)
+    print(f"indexed {indexed_count} new imessages with {len(errors)} errors")
     queried_imessages = query_imessages(os_client, "stupid")
     print(queried_imessages)
