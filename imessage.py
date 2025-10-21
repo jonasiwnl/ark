@@ -2,7 +2,7 @@ import sqlite3
 from datetime import datetime, timedelta
 from pathlib import Path
 
-from opensearchpy import OpenSearch
+from opensearchpy import OpenSearch, helpers
 
 IMESSAGE_OPENSEARCH_INDEX = "imessages"
 IMESSAGE_DATA_PATH = Path.home() / "Library/Messages/chat.db"
@@ -46,24 +46,34 @@ def read_new_imessages() -> list[dict]:
 
 
 def index_imessages(os_client: OpenSearch, imessages: list[dict]):
-    for imessage in imessages:
-        document = {
-            "text": imessage["text"],
-            "date": mac_timestamp_to_datetime(imessage["date"]).isoformat(),
-            "is_from_me": imessage["is_from_me"],
-            "sender_id": imessage["sender_id"],
-            "chat_display_name": imessage["chat_display_name"],
+    index_operations = [
+        {
+            "_index": IMESSAGE_OPENSEARCH_INDEX,
+            "_id": imessage["message_id"],
+            "_source": {
+                "text": imessage["text"],
+                "date": mac_timestamp_to_datetime(imessage["date"]).isoformat(),
+                "is_from_me": imessage["is_from_me"],
+                "sender_id": imessage["sender_id"],
+                "chat_display_name": imessage["chat_display_name"],
+            },
         }
-        os_client.index(index=IMESSAGE_OPENSEARCH_INDEX, id=imessage["message_id"], body=document)
+        for imessage in imessages
+    ]
+    helpers.bulk(os_client, index_operations)
 
 
 # TODO: typing/formatting
-def query_imessages(os_client: OpenSearch, query: str) -> list[dict]:
-    response = os_client.search(index=IMESSAGE_OPENSEARCH_INDEX, body={"query": {"match": {"text": query}}})
+def query_imessages(os_client: OpenSearch, query: str, limit: int = 10) -> list[dict]:
+    response = os_client.search(
+        index=IMESSAGE_OPENSEARCH_INDEX, body={"query": {"match": {"text": query}}, "size": limit}
+    )
     return response["hits"]["hits"]
 
 
 if __name__ == "__main__":
     imessages = read_new_imessages()
     os_client = OpenSearch(hosts=[{"host": "localhost", "port": 9200}], use_ssl=False)
-    query_imessages(os_client, "stupid")
+    index_imessages(os_client, imessages)
+    queried_imessages = query_imessages(os_client, "stupid")
+    print(queried_imessages)
