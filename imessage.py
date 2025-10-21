@@ -1,4 +1,5 @@
 import sqlite3
+from datetime import datetime, timedelta
 from pathlib import Path
 
 from opensearchpy import OpenSearch
@@ -23,6 +24,13 @@ ORDER BY message.date ASC
 """
 
 
+# Should probably go into a util file
+def mac_timestamp_to_datetime(mac_timestamp: int) -> datetime:
+    mac_epoch = datetime(2001, 1, 1)
+    # Nanoseconds to seconds
+    return mac_epoch + timedelta(seconds=mac_timestamp / 1_000_000_000)
+
+
 def read_new_imessages() -> list[dict]:
     last_timestamp = LAST_TIMESTAMP_PATH.read_text() if LAST_TIMESTAMP_PATH.exists() else 0
     with sqlite3.connect(f"file:{IMESSAGE_DATA_PATH}?mode=ro", uri=True) as conn:
@@ -41,7 +49,7 @@ def index_imessages(os_client: OpenSearch, imessages: list[dict]):
     for imessage in imessages:
         document = {
             "text": imessage["text"],
-            "date": imessage["date"],  # TODO: format date
+            "date": mac_timestamp_to_datetime(imessage["date"]).isoformat(),
             "is_from_me": imessage["is_from_me"],
             "sender_id": imessage["sender_id"],
             "chat_display_name": imessage["chat_display_name"],
@@ -49,7 +57,13 @@ def index_imessages(os_client: OpenSearch, imessages: list[dict]):
         os_client.index(index=IMESSAGE_OPENSEARCH_INDEX, id=imessage["message_id"], body=document)
 
 
+# TODO: typing/formatting
+def query_imessages(os_client: OpenSearch, query: str) -> list[dict]:
+    response = os_client.search(index=IMESSAGE_OPENSEARCH_INDEX, body={"query": {"match": {"text": query}}})
+    return response["hits"]["hits"]
+
+
 if __name__ == "__main__":
     imessages = read_new_imessages()
     os_client = OpenSearch(hosts=[{"host": "localhost", "port": 9200}], use_ssl=False)
-    index_imessages(os_client, imessages)
+    query_imessages(os_client, "stupid")
