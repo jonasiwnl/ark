@@ -1,12 +1,15 @@
 # ---------- Services ----------
 
+all:
+	$(MAKE) -j3 opensearch server fe
+
 server:
 	uv run server.py
 
 opensearch:
 	./opensearch.sh
 
-web:
+fe:
 	cd frontend && npm run dev
 
 
@@ -15,6 +18,9 @@ web:
 format:
 	uvx ruff format .
 	uvx ruff check . --fix
+
+format_fe:
+	cd frontend && npm run format
 
 dev_clean:
 	rm imessage_last_timestamp.txt

@@ -16,13 +16,27 @@ function App() {
   }
 
   return (
-  <div>
-    <input type="text" value={searchText} onChange={(e) => setSearchText(e.target.value)} />
-    <button onClick={() => search(searchText)}>Search</button>
-    <button onClick={reindex}>Reindex</button>
-    <div>
+  <div className="app-container">
+    <form
+      className="search-bar"
+      onSubmit={(e) => {
+        e.preventDefault();
+        search(searchText);
+      }}
+    >
+      <input
+        className="search-input"
+        type="text"
+        placeholder="Search…"
+        value={searchText}
+        onChange={(e) => setSearchText(e.target.value)}
+      />
+      <button type="submit">Search</button>
+      <button type="button" onClick={reindex}>Reindex</button>
+    </form>
+    <div className="results">
       {results.map((result: any) => (
-        <div key={result._id}>{result._source.text}</div>
+        <div className="result-card" key={result._id}>{result._source.text}</div>
       ))}
     </div>
   </div>
