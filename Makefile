@@ -6,6 +6,9 @@ server:
 opensearch:
 	./opensearch.sh
 
+web:
+	cd frontend && npm run dev
+
 
 # ---------- Development ----------
 

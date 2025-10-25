@@ -1,10 +1,17 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from opensearchpy import OpenSearch
 
 from apple_notes import index_apple_notes, query_apple_notes, read_apple_notes
 from imessage import index_imessages, query_imessages, read_new_imessages
 
 app = FastAPI(title="Ark")
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 @app.get("/search")
