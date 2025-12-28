@@ -16,13 +16,16 @@ fe:
 # ---------- Development ----------
 
 format:
+	$(MAKE) formatb formatf
+
+formatb:
 	uvx ruff format .
 	uvx ruff check . --fix
 
-format_fe:
+formatf:
 	cd frontend && npm run format
 
-dev_clean:
+clean:
 	rm imessage_last_timestamp.txt
 	docker stop ark_opensearch
 	docker rm ark_opensearch

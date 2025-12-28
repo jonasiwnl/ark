@@ -69,7 +69,8 @@ def index_imessages(os_client: OpenSearch, imessages: list[dict]) -> tuple[int, 
 # TODO: typing/formatting
 def query_imessages(os_client: OpenSearch, query: str, limit: int = 10) -> list[dict]:
     response = os_client.search(
-        index=IMESSAGE_OPENSEARCH_INDEX, body={"query": {"match": {"text": query}}, "sort": [{"date": "desc"}], "size": limit}
+        index=IMESSAGE_OPENSEARCH_INDEX,
+        body={"query": {"match": {"text": query}}, "sort": [{"date": "desc"}], "size": limit},
     )
     return response["hits"]["hits"]
 
