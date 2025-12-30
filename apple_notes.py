@@ -1,6 +1,7 @@
 import json
 import subprocess
 from html.parser import HTMLParser
+from typing_extensions import TypedDict
 
 from opensearchpy import OpenSearch, helpers
 
@@ -15,16 +16,40 @@ JSON.stringify(Application("Notes").notes().map(n => ({
 """
 
 
+class RawAppleNote(TypedDict):
+    """Raw Apple Note data from JXA query."""
+
+    id: str
+    name: str
+    body: str
+
+
+class IndexedAppleNote(TypedDict):
+    """Apple Note data as stored in OpenSearch."""
+
+    name: str
+    body: str
+
+
+class AppleNoteSearchHit(TypedDict):
+    """OpenSearch search hit for an Apple Note."""
+
+    _index: str
+    _id: str
+    _score: float | None
+    _source: IndexedAppleNote
+
+
 # Removes HTML tags from the body of the note
-def parse_apple_note(parser: HTMLParser, apple_note: dict) -> dict:
-    text_parts = []
+def parse_apple_note(parser: HTMLParser, apple_note: RawAppleNote) -> RawAppleNote:
+    text_parts: list[str] = []
     parser.handle_data = lambda data: text_parts.append(data)
     parser.feed(apple_note["body"])
     apple_note["body"] = "".join(text_parts)
     return apple_note
 
 
-def read_apple_notes() -> list[dict]:
+def read_apple_notes() -> list[RawAppleNote]:
     osascript_result = subprocess.run(
         ["osascript", "-l", "JavaScript", "-e", READ_APPLE_NOTES_QUERY], capture_output=True, text=True
     )
@@ -33,7 +58,7 @@ def read_apple_notes() -> list[dict]:
     return [parse_apple_note(parser, raw_apple_note) for raw_apple_note in raw_apple_notes]
 
 
-def index_apple_notes(os_client: OpenSearch, apple_notes: list[dict]) -> tuple[int, list[dict]]:
+def index_apple_notes(os_client: OpenSearch, apple_notes: list[RawAppleNote]) -> tuple[int, list[dict]]:
     # To avoid having to deal with indexing incremental updates, we nuke and re-index every time.
     # Ignores 404 errors (the index doesn't exist).
     os_client.indices.delete(index=APPLE_NOTES_OPENSEARCH_INDEX, ignore=[404])
@@ -56,8 +81,7 @@ def index_apple_notes(os_client: OpenSearch, apple_notes: list[dict]) -> tuple[i
     return indexed_count, errors
 
 
-# TODO: typing/formatting
-def query_apple_notes(os_client: OpenSearch, query: str, limit: int = 10) -> list[dict]:
+def query_apple_notes(os_client: OpenSearch, query: str, limit: int = 10) -> list[AppleNoteSearchHit]:
     response = os_client.search(
         index=APPLE_NOTES_OPENSEARCH_INDEX, body={"query": {"match": {"body": query}}, "size": limit}
     )
