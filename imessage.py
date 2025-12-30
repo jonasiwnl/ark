@@ -1,9 +1,9 @@
 import sqlite3
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing_extensions import TypedDict
 
 from opensearchpy import OpenSearch, helpers
+from typing_extensions import TypedDict
 
 IMESSAGE_OPENSEARCH_INDEX = "imessages"
 IMESSAGE_DATA_PATH = Path.home() / "Library/Messages/chat.db"

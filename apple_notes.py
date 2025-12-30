@@ -1,9 +1,9 @@
 import json
 import subprocess
 from html.parser import HTMLParser
-from typing_extensions import TypedDict
 
 from opensearchpy import OpenSearch, helpers
+from typing_extensions import TypedDict
 
 APPLE_NOTES_OPENSEARCH_INDEX = "apple_notes"
 # JXA
